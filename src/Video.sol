@@ -18,7 +18,7 @@ contract VideoSharing is ReentrancyGuard {
         string arweaveTxId; //Arweave identifier for locating video
         string thumbnailUrl; //Thumbnail for video
         uint duration; //Video Length
-        string[] tags; //Tags for labelling videos in categories, etc.
+        string[] categoryList ; //categoryList  for labelling videos in categories, etc.
         uint likesCount; //Tracking count of likes on a video
         uint commentsCount; //Tracking count of comments on a video
         uint accessFee; //Fee Required to access the video
@@ -63,7 +63,7 @@ contract VideoSharing is ReentrancyGuard {
         string memory _title, //Video title
         string memory _description, //Video Description
         bytes memory _videoData, //Binary file for video Data
-        string[] memory _tags, //Tags for video
+        string[] memory _categoryList , //categoryList  for video
         string memory _thumbnailUrl, //Thumbnail URL for video
         uint _videoLength, //Video Duration
         uint _accessFee //Fee for access 
@@ -85,7 +85,7 @@ contract VideoSharing is ReentrancyGuard {
             arweaveTxId: arweaveTxId,
             likesCount: 0,
             commentsCount: 0,
-            tags: _tags,
+            categoryList : _categoryList ,
             thumbnailUrl: _thumbnailUrl,
             duration: _videoLength,
             accessFee: _accessFee
@@ -128,7 +128,7 @@ contract VideoSharing is ReentrancyGuard {
 
 
     function getVideo(uint _videoId) public view returns (string memory) {
-        require(hasAccess[_videoId][msg.sender] || msg.sender == videos[_videoId].uploader, "Access denied");
+        require(hasAccess[_videoId][msg.sender] || msg.sender == videos[_videoId].uploader, "Access denied"); //Token gating the video to add content access controls for users
         
         string memory arweaveTxId = videos[_videoId].arweaveTxId; //Getting arweave tx id for a video using video id 
 
@@ -142,13 +142,13 @@ contract VideoSharing is ReentrancyGuard {
     }   
 
     function payForAccess(uint _videoId) external nonReentrant {
-        require(_videoId > 0 && _videoId <= videoCount, "Invalid Video Id");
-        require(!hasAccess[_videoId][msg.sender], "Access already granted");
+        require(_videoId > 0 && _videoId <= videoCount, "Invalid Video Id"); //Check for if the video Id is valid or not 
+        require(!hasAccess[_videoId][msg.sender], "Access already granted"); //Check for if the user already has access 
 
-        uint fee = videos[_videoId].accessFee;
-        require(token.transferFrom(msg.sender, videos[_videoId].uploader, fee), "Payment failed");
+        uint fee = videos[_videoId].accessFee; //Get fee for the video 
+        require(token.transferFrom(msg.sender, videos[_videoId].uploader, fee), "Payment failed"); //Payment to video uploader 
 
-        hasAccess[_videoId][msg.sender] = true; //Grant access to user
-        emit VideoAccessGranted(_videoId, msg.sender);
+        hasAccess[_videoId][msg.sender] = true; //Grant access to user 
+        emit VideoAccessGranted(_videoId, msg.sender); //Event for notifying offchain apps/clients that a person has been granted video access 
     }
 }
