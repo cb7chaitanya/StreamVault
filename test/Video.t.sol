@@ -27,8 +27,8 @@ contract VideoSharingTest is Test {
 
     function testUploadVideo() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "A test video description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
-        (string memory title, string memory description, , , , , , , , ) = videoSharing.videos(1);
+        videoSharing.uploadVideo("Test Video", "A test video description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
+        ( , string memory title, string memory description, , , , , , ,  ) = videoSharing.videos(1);
         assertEq(title, "Test Video");
         assertEq(description, "A test video description");
         vm.stopPrank();
@@ -36,12 +36,12 @@ contract VideoSharingTest is Test {
 
     function testLikeVideo() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
+        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
         vm.stopPrank();
 
         vm.startPrank(viewer);
         token.approve(address(videoSharing), 10 ether);
-        videoSharing.payForAccess(1);
+        videoSharing.payForAccess(uploader);
         videoSharing.likeVideo(1);
         (, , , , , , , , uint likesCount, ) = videoSharing.videos(1);
         assertEq(likesCount, 1, "Like Count should be 1");
@@ -50,12 +50,12 @@ contract VideoSharingTest is Test {
 
     function testAddComment() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
+        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
         vm.stopPrank();
 
         vm.startPrank(viewer);
         token.approve(address(videoSharing), 10 ether);
-        videoSharing.payForAccess(1);
+        videoSharing.payForAccess(uploader);
         videoSharing.addComment(1, "Great Video!");
         (, , , , , , , , , uint commentsCount) = videoSharing.videos(1);
         assertEq(commentsCount, 1, "Comments count should be 1");
@@ -64,20 +64,20 @@ contract VideoSharingTest is Test {
 
     function testAccessPayment() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
+        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
         vm.stopPrank();
 
         vm.startPrank(viewer);
         token.approve(address(videoSharing), 10 ether);
-        videoSharing.payForAccess(1);
-        bool accessGranted = videoSharing.hasAccess(1, viewer);
+        videoSharing.payForAccess(uploader);
+        bool accessGranted = videoSharing.hasAccess(uploader,viewer);
         assertTrue(accessGranted, "Viewer should have access to the video!");
         vm.stopPrank();
     }
 
     function testLikeWithoutAccess() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
+        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
         vm.stopPrank();    
         
         vm.startPrank(viewer);
@@ -88,19 +88,19 @@ contract VideoSharingTest is Test {
 
     function testWithdrawFunds() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
+        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
         vm.stopPrank();
 
         // Simulate viewer paying for access
         vm.startPrank(viewer);
         token.approve(address(videoSharing), 10 ether);
-        videoSharing.payForAccess(1);
+        videoSharing.payForAccess(uploader);
         vm.stopPrank();
 
         // Uploader withdraws funds
         vm.startPrank(uploader);
         uint256 initialBalance = token.balanceOf(uploader);
-        videoSharing.withdrawFunds();
+        videoSharing.withdrawTips();
         uint256 finalBalance = token.balanceOf(uploader);
         assertTrue(finalBalance > initialBalance, "Uploader should have withdrawn funds");
         vm.stopPrank();
@@ -108,7 +108,7 @@ contract VideoSharingTest is Test {
 
     function testPlatformFeeOnAccessPayment() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
+        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
         vm.stopPrank();
 
         uint256 platformInitialBalance = token.balanceOf(platform);
@@ -116,7 +116,7 @@ contract VideoSharingTest is Test {
         // Simulate viewer paying for access
         vm.startPrank(viewer);
         token.approve(address(videoSharing), 10 ether);
-        videoSharing.payForAccess(1);
+        videoSharing.payForAccess(uploader);
         vm.stopPrank();
 
         uint256 platformFinalBalance = token.balanceOf(platform);
@@ -126,7 +126,7 @@ contract VideoSharingTest is Test {
 
     function testTipUploader() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
+        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
         vm.stopPrank();
 
         // Simulate viewer tipping the uploader
@@ -138,7 +138,7 @@ contract VideoSharingTest is Test {
         // Check uploader's balance after tip
         vm.startPrank(uploader);
         uint256 initialBalance = token.balanceOf(uploader);
-        videoSharing.withdrawFunds();
+        videoSharing.withdrawTips();
         uint256 finalBalance = token.balanceOf(uploader);
         assertTrue(finalBalance > initialBalance, "Uploader should have received tips");
         vm.stopPrank();
@@ -148,35 +148,35 @@ contract VideoSharingTest is Test {
 
     function testVideoRetrieval() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
+        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
         vm.stopPrank();
 
-        (string memory title, string memory description, , , , , , , , ) = videoSharing.videos(1);
+        ( , string memory title, string memory description, , , , , , ,  ) = videoSharing.videos(1);
         assertEq(title, "Test Video");
         assertEq(description, "Description");
     }
 
     function testMultipleViews() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
+        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
         vm.stopPrank();
 
         // First viewer
         vm.startPrank(viewer);
         token.approve(address(videoSharing), 10 ether);
-        videoSharing.payForAccess(1);
+        videoSharing.payForAccess(uploader);
         vm.stopPrank();
 
         // Second viewer
         vm.startPrank(address(0x4));
         token.transfer(address(0x4), 100 ether);
         token.approve(address(videoSharing), 10 ether);
-        videoSharing.payForAccess(1);
+        videoSharing.payForAccess(uploader);
         vm.stopPrank();
 
         // Check access for both viewers
-        assertTrue(videoSharing.hasAccess(1, viewer), "First viewer should have access");
-        assertTrue(videoSharing.hasAccess(1, address(0x4)), "Second viewer should have access");
+        assertTrue(videoSharing.hasAccess(uploader, viewer), "First viewer should have access");
+        assertTrue(videoSharing.hasAccess(uploader, address(0x4)), "Second viewer should have access");
     }
 
     function testInvalidVideoId() public {
@@ -188,7 +188,7 @@ contract VideoSharingTest is Test {
 
     function testCommentAccessWithoutPayment() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
+        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
         vm.stopPrank();
 
         vm.startPrank(viewer);
@@ -199,7 +199,7 @@ contract VideoSharingTest is Test {
 
     function testTipWithInsufficientBalance() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
+        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
         vm.stopPrank();
 
         vm.startPrank(viewer);
@@ -211,12 +211,12 @@ contract VideoSharingTest is Test {
 
     function testLikeVideoMultipleTimes() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
+        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
         vm.stopPrank();
 
         vm.startPrank(viewer);
         token.approve(address(videoSharing), 10 ether);
-        videoSharing.payForAccess(1);
+        videoSharing.payForAccess(uploader);
         videoSharing.likeVideo(1);
         videoSharing.likeVideo(1); // Liking again
         (, , , , , , , , uint likesCount, ) = videoSharing.videos(1);
@@ -226,13 +226,13 @@ contract VideoSharingTest is Test {
 
     function testInvalidPaymentAmount() public {
         vm.startPrank(uploader);
-        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string, "thumbnail.jpg", 120, 10 ether);
+        videoSharing.uploadVideo("Test Video", "Description", hex"1234", new string[](2), "thumbnail.jpg", 120, 10 ether);
         vm.stopPrank();
 
         vm.startPrank(viewer);
         token.approve(address(videoSharing), 1 ether); // Approving less than the required amount
         vm.expectRevert("Insufficient funds");
-        videoSharing.payForAccess(1);
+        videoSharing.payForAccess(uploader);
         vm.stopPrank();
     }
 }
