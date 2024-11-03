@@ -2,5 +2,7 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+rpc_url = "https://testnet-rpc.wvm.dev"
+chain_id = 9496
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
