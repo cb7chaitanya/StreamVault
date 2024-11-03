@@ -151,7 +151,7 @@ contract VideoSharing is ReentrancyGuard {
         emit ChannelAccessGranted(_uploader, msg.sender); //Event for notifying offchain apps/clients that a person has been granted access to a channel       
     }
 
-    function tipVideo(uint _videoId, uint _amount) external nonReentrant {
+    function tipUploader(uint _videoId, uint _amount) external nonReentrant {
         require(_amount > 0, "Tip Amount has to be greater than zero"); //Check for the tip amount to be greater than zero
         uint platformFee = (_amount * 1)/100; //Calculate platform fee from the total amount
         uint uploaderAmount = _amount - platformFee; //Calculate amount left to be sent uploader
@@ -161,7 +161,7 @@ contract VideoSharing is ReentrancyGuard {
         emit Tipped(_videoId, msg.sender, _amount); //Event for notifying offchain apps/clients that an amount has been tipped 
     }
 
-    function withdawTips() external nonReentrant {
+    function withdrawTips() external nonReentrant {
         uint totalTips; //Local variable to hold total tips on all videos a channel has 
         for(uint i=1; i<=videoCount; i++){
             if(videos[i].uploader == msg.sender){
